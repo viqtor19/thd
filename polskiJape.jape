@@ -1,0 +1,164 @@
+Phase:	SimpleHearst
+Input:  Token
+Options: control = appelt
+
+Macro: toBeVerb
+(
+({Token.lemma == "być"})
+)
+
+Macro: NotToBeVerb
+(
+({!Token.lemma == "być"})
+)
+
+
+Macro: LHSHearstBody_tier1modifiers
+(
+({Token.kind == "number"}|{Token.category =~ "num"}|{Token.category =~ "adj"}|{Token.category =~ "prep"}|{Token.category =~ "brev"}|{Token.string == "."}|{Token.string == "-"}|{Token.category =~ "conj"}|{Token.category =~ "comp"})
+)
+
+Macro: LHSHearstBody_tier2modifiers
+(
+({Token.kind == "number"}|{Token.category =~ "num"}|{Token.category =~ "adj"}|{Token.category =~ "brev"}|{Token.string == "."}|{Token.string == "-"})
+)
+
+
+Macro: LHSHearstBody_tier3modifiers
+(
+({Token.kind == "number"}|{Token.category =~ "num"}|{Token.category =~ "subst"}|{Token.category == "."}|{Token.string == "-"}|{Token.string == "&"}|{Token.string == "/"})
+)
+
+
+Macro: NumbersInBracketes
+(
+({Token.position == "startpunct"})
+({Token.kind == "number"})*
+({Token.position == "endpunct"})
+)
+
+Macro: LHSHearstBody
+(
+(NumbersInBracketes)?
+(LHSHearstBody_tier1modifiers)*
+(NumbersInBracketes)?
+(LHSHearstBody_tier2modifiers)*
+(NumbersInBracketes)?
+(LHSHearstBody_tier3modifiers)*
+(NumbersInBracketes)?
+
+)
+
+Macro: FromToTimePeriod
+(
+({Token.string == "od"})
+({Token.kind == "number"})+
+(
+({Token.string == "do"})
+({Token.kind == "number"})+
+)
+)
+
+Macro: FirstAdditionaInfoInserted
+(
+({Token.string == "od"}|{Token.category =~ "prep"})
+({Token.kind == "number"}|{Token.category =~ "adj"}|{Token.category =~ "brev"}|{Token.category =~ "adv"}|{Token.string == "."}|{Token.string == "-"})*
+({Token.category =~ "subst"}|{Token.string == "."})*
+)
+
+Macro: SecondAndMoreAdditionaInfoInserted
+(
+({Token.string == "od"}|{Token.category =~ "prep"}|{Token.string == "i"})
+({Token.kind == "number"}|{Token.category =~ "adj"}|{Token.category =~ "brev"}|{Token.category =~ "adv"}|{Token.string == "."}|{Token.string == "–"})*
+({Token.category =~ "subst"}|{Token.string == "."})*
+)
+
+Macro: MeaningLessWordsImmediatelyAfterToBe
+(
+({Token.string == "zarówno"})
+)
+
+Macro: AdditionaGenericInfoInserted
+(
+(FirstAdditionaInfoInserted)
+(NumbersInBracketes)*
+(SecondAndMoreAdditionaInfoInserted)*
+(NumbersInBracketes)*
+)
+
+Macro: dash
+(
+({Token.string == "–"}|{Token.subkind =~ "dashpunct"})			
+)
+
+Macro: adj
+(
+({Token.category =~ "adj"})			
+)
+
+Macro: dashAdj
+(
+(dash)
+(adj)*
+)
+
+
+
+Macro: Head
+(
+({Token.category =~ "subst"})
+)
+
+Macro: OneOf
+(
+({Token.string == "jeden"})
+({Token.string == "z"})
+({Token.category =~ "num"})
+)
+
+
+
+Macro: TitleOf
+(
+({Token.string == "tytuł"})
+)
+
+
+Macro: SpeciesOf
+(
+({Token.string == "rodzaj"})
+)
+
+
+Rule: HearstRule_Dash
+Priority: 30
+(dashAdj)
+((OneOf)?)
+((SpeciesOf)?)
+((TitleOf)?)
+(Head)
+:hearstPattern
+--> 
+:hearstPattern.h = {kind = "isApattern", rule = "HearstRule_Dash"},
+{ ctx.endPhase(); }
+
+
+Rule: HearstRule_Simple
+Priority: 30
+(
+(NotToBeVerb)*
+(toBeVerb)
+(MeaningLessWordsImmediatelyAfterToBe)?
+)
+(FromToTimePeriod)?
+(AdditionaGenericInfoInserted)?
+((OneOf)?)
+(SpeciesOf)?
+(TitleOf)?
+(LHSHearstBody)
+(Head)
+:hearstPattern
+--> 
+:hearstPattern.h = {kind = "isApattern", rule = "HearstRule_Simple"},
+{ ctx.endPhase(); }
+
